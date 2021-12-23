@@ -31,6 +31,7 @@ class MainPanel(wx.Panel):
         self.expand_button = MyButton(self, label='︾Expand', font=font, size=(0, 0))
         self.browser_panel = BrowserPanel(self)
 
+        print('wx.DefaultSize:', wx.DefaultSize) # wx.DefaultSize
         self.google_translate_radiobutton = MyRadioButton(self, label='Google', font=font, size=(0, -1), style=wx.RB_GROUP)
         self.bing_translate_radiobutton = MyRadioButton(self, label='Bing', font=font, size=(0, -1))
         self.yahoo_dictionary_radiobutton = MyRadioButton(self, label='Yahoo', font=font, size=(0, -1))
@@ -64,3 +65,6 @@ class MainPanel(wx.Panel):
             (self.control_panel, wx.SizerFlags(0).Expand()),
             (self.browser_panel, wx.SizerFlags(1).Expand())
         ])
+
+        self.google_translate_radiobutton.SetValue(True)
+        self.translate_direction_Auto_radiobutton.SetValue(True)
