@@ -2,6 +2,7 @@ from typing import Optional
 import wx
 import wx.html2
 import enum
+from datetime import datetime
 from UI.BrowserPanel import BrowserPanel
 from UI.MyBoxSizer import MyBoxSizer
 from UI.MyGridBagSizer import MyGridBagSizer
@@ -30,6 +31,7 @@ class MainPanel(wx.Panel):
         wx.Panel.__init__(self, *args, **kwargs)
         self.__clipboard_listener = ClipboardListener()
         self.__settings: MainPanel.Settings = MainPanel.Settings()
+        self.__lasttime_change_title: Optional[datetime] = None
         self.__init_UI()
         self.__init_events()
     
@@ -43,6 +45,14 @@ class MainPanel(wx.Panel):
             return YahooDictionary.Translate(settings.keyword, settings.translate_direction)
         else:
             raise NotImplementedError(settings.translate_provider)
+    
+    def __SetTitle(self, title: str, footprint: bool = True):
+        self.TopLevelParent.SetTitle(title)
+        if footprint:
+            self.__lasttime_change_title = datetime.now()
+    
+    def __GetTitle(self) -> str:
+        return self.TopLevelParent.GetTitle()
 
     def Refresh(self, *, keyword: Optional[str] = None,
                          translate_provider: Optional[TranslateProvider] = None,
@@ -53,7 +63,7 @@ class MainPanel(wx.Panel):
             self.__settings.translate_provider = translate_provider
         if translate_direction is not None:
             self.__settings.translate_direction = translate_direction
-        self.TopLevelParent.SetTitle(s[:50] + '...' if len(s:=repr(self.__settings.keyword)[1:-1]) > 50 else s)
+        self.TopLevelParent.SetTitle('⟳' + (s[:50] + '...' if len(s:=repr(self.__settings.keyword)[1:-1]) > 50 else s))
         url = self.GetUrl(self.__settings)
         self.browser_panel.LoadURL(url)
 
@@ -62,17 +72,20 @@ class MainPanel(wx.Panel):
         def idle_event_listener(e: wx.IdleEvent):
             timelock: TimeLock = idle_event_listener.timelock
             if timelock.acquire():
+                if self.__lasttime_change_title is not None and (datetime.now() - self.__lasttime_change_title).total_seconds() > 1.0:
+                    self.__SetTitle('☑'+self.__GetTitle()[1:], footprint=False)
+                    self.__lasttime_change_title = None
                 new_text = self.__clipboard_listener.check_text()
                 if new_text is not None:
                     self.text_entry.SetValue(new_text)
                     self.Refresh(keyword=new_text)
         self.Bind(wx.EVT_IDLE, handler=idle_event_listener)
-        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_NAVIGATING, handler=lambda e: self.TopLevelParent.SetTitle('EVT_WEBVIEW_NAVIGATING'))
-        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_NAVIGATED, handler=lambda e: self.TopLevelParent.SetTitle('EVT_WEBVIEW_NAVIGATED'))
-        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_LOADED, handler=lambda e: self.TopLevelParent.SetTitle('EVT_WEBVIEW_LOADED'))
-        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_ERROR, handler=lambda e: self.TopLevelParent.SetTitle('EVT_WEBVIEW_ERROR'))
-        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_NEWWINDOW, handler=lambda e: self.TopLevelParent.SetTitle('EVT_WEBVIEW_NEWWINDOW'))
-        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_TITLE_CHANGED, handler=lambda e: self.TopLevelParent.SetTitle('EVT_WEBVIEW_TITLE_CHANGED'))
+        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_NAVIGATING, handler=lambda e: [self.__SetTitle('⏳'+self.__GetTitle()[1:])])
+        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_NAVIGATED, handler=lambda e: [self.__SetTitle('⌛'+self.__GetTitle()[1:])])
+        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_LOADED, handler=lambda e: [self.__SetTitle('✓'+self.__GetTitle()[1:])])
+        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_ERROR, handler=lambda e: [self.__SetTitle('⚠'+self.__GetTitle()[1:])])
+        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_NEWWINDOW, handler=lambda e: [self.__SetTitle('🆕'+self.__GetTitle()[1:])])
+        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_TITLE_CHANGED, handler=lambda e: [self.__SetTitle('✏'+self.__GetTitle()[1:])])
         self.google_translate_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=lambda e: self.Refresh(translate_provider=TranslateProvider.GoogleTranslate))
         self.bing_translate_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=lambda e: self.Refresh(translate_provider=TranslateProvider.BingTranslate))
         self.yahoo_dictionary_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=lambda e: self.Refresh(translate_provider=TranslateProvider.YahooDictionary))
