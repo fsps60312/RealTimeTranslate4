@@ -1,19 +1,84 @@
+from typing import Optional
 import wx
-from wx.core import HORIZONTAL
+import wx.html2
+import enum
 from UI.BrowserPanel import BrowserPanel
 from UI.MyBoxSizer import MyBoxSizer
 from UI.MyGridBagSizer import MyGridBagSizer
 from UI.MyRadioButton import MyRadioButton
 from UI.MyButton import MyButton
+from Utility.ClipboardListener import ClipboardListener
+from Utility.TimeLock import TimeLock
+from Utility.TranslateDirection import TranslateDirection
+from Utility.strlib import is_chinese
+from Utility.Translator import GoogleTranslate, BingTranslate, YahooDictionary
+from Decorators.add_attrs import add_attrs
 
+class TranslateProvider(enum.Enum):
+    GoogleTranslate = enum.auto()
+    BingTranslate = enum.auto()
+    YahooDictionary = enum.auto()
 
 class MainPanel(wx.Panel):
+
+    class Settings:
+        translate_direction = TranslateDirection.Auto
+        translate_provider = TranslateProvider.GoogleTranslate
+        keyword: str = ''
+        
     def __init__(self, *args, **kwargs):
         wx.Panel.__init__(self, *args, **kwargs)
+        self.__clipboard_listener = ClipboardListener()
+        self.__settings: MainPanel.Settings = MainPanel.Settings()
         self.__init_UI()
         self.__init_events()
+    
+    @staticmethod
+    def GetUrl(settings: Settings) -> str:
+        if settings.translate_provider == TranslateProvider.GoogleTranslate:
+            return GoogleTranslate.Translate(settings.keyword, settings.translate_direction)
+        elif settings.translate_provider == TranslateProvider.BingTranslate:
+            return BingTranslate.Translate(settings.keyword, settings.translate_direction)
+        elif settings.translate_provider == TranslateProvider.YahooDictionary:
+            return YahooDictionary.Translate(settings.keyword, settings.translate_direction)
+        else:
+            raise NotImplementedError(settings.translate_provider)
+
+    def Refresh(self, *, keyword: Optional[str] = None,
+                         translate_provider: Optional[TranslateProvider] = None,
+                         translate_direction: Optional[TranslateDirection] = None):
+        if keyword is not None:
+            self.__settings.keyword = keyword
+        if translate_provider is not None:
+            self.__settings.translate_provider = translate_provider
+        if translate_direction is not None:
+            self.__settings.translate_direction = translate_direction
+        self.TopLevelParent.SetTitle(s[:50] + '...' if len(s:=repr(self.__settings.keyword)[1:-1]) > 50 else s)
+        url = self.GetUrl(self.__settings)
+        self.browser_panel.LoadURL(url)
 
     def __init_events(self):
+        @add_attrs(timelock=TimeLock(0.5))
+        def idle_event_listener(e: wx.IdleEvent):
+            timelock: TimeLock = idle_event_listener.timelock
+            if timelock.acquire():
+                new_text = self.__clipboard_listener.check_text()
+                if new_text is not None:
+                    self.text_entry.SetValue(new_text)
+                    self.Refresh(keyword=new_text)
+        self.Bind(wx.EVT_IDLE, handler=idle_event_listener)
+        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_NAVIGATING, handler=lambda e: self.TopLevelParent.SetTitle('EVT_WEBVIEW_NAVIGATING'))
+        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_NAVIGATED, handler=lambda e: self.TopLevelParent.SetTitle('EVT_WEBVIEW_NAVIGATED'))
+        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_LOADED, handler=lambda e: self.TopLevelParent.SetTitle('EVT_WEBVIEW_LOADED'))
+        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_ERROR, handler=lambda e: self.TopLevelParent.SetTitle('EVT_WEBVIEW_ERROR'))
+        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_NEWWINDOW, handler=lambda e: self.TopLevelParent.SetTitle('EVT_WEBVIEW_NEWWINDOW'))
+        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_TITLE_CHANGED, handler=lambda e: self.TopLevelParent.SetTitle('EVT_WEBVIEW_TITLE_CHANGED'))
+        self.google_translate_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=lambda e: self.Refresh(translate_provider=TranslateProvider.GoogleTranslate))
+        self.bing_translate_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=lambda e: self.Refresh(translate_provider=TranslateProvider.BingTranslate))
+        self.yahoo_dictionary_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=lambda e: self.Refresh(translate_provider=TranslateProvider.YahooDictionary))
+        self.translate_direction_Auto_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=lambda e: self.Refresh(translate_direction=TranslateDirection.Auto))
+        self.translate_direction_CE_radiobutton.Bind(wx.EVT_RADIOBUTTON, lambda e: self.Refresh(translate_direction=TranslateDirection.CE))
+        self.translate_direction_EC_radiobutton.Bind(wx.EVT_RADIOBUTTON, lambda e: self.Refresh(translate_direction=TranslateDirection.EC))
         return
         self.button.Bind(wx.EVT_BUTTON, lambda e: [
             w:=self.text_entry.GetValue(),
