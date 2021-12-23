@@ -31,3 +31,14 @@
 ### References:
 * [wx.html2.WebView — wxPython Phoenix 4.1.2a1 documentation](https://wxpython.org/Phoenix/docs/html/wx.html2.WebView.html)
 * [wx.html2.WebView NotImplementedError (Ubuntu GTK) - WxWidgets/Phoenix](https://issueexplorer.com/issue/wxWidgets/Phoenix/2028)
+
+
+# To use Yahoo Dictionary
+### Scenario:
+><font color=#ff0000>WebKit wasn't able to find a WebVTT encoder. Not continuing without platform support for subtitles.</font>
+
+### Solution:
+    sudo apt install gstreamer1.0-plugins-bad
+
+### References:
+* [WebKit wasn't able to find a WebVTT encoder. - Webview/Webview](https://issueexplorer.com/issue/webview/webview/621)
