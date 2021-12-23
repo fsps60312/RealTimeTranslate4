@@ -2,6 +2,8 @@ from typing import Optional
 import wx
 import wx.html2
 import enum
+import time
+import threading
 from datetime import datetime
 from UI.BrowserPanel import BrowserPanel
 from UI.MyBoxSizer import MyBoxSizer
@@ -68,18 +70,26 @@ class MainPanel(wx.Panel):
         self.browser_panel.LoadURL(url)
 
     def __init_events(self):
-        @add_attrs(timelock=TimeLock(0.5))
-        def idle_event_listener(e: wx.IdleEvent):
-            timelock: TimeLock = idle_event_listener.timelock
-            if timelock.acquire():
+        # @add_attrs(timelock=TimeLock(0.5))
+        def idle_event_listener():
+            # timelock: TimeLock = idle_event_listener.timelock
+            # if timelock.acquire():
+            if True:
                 if self.__lasttime_change_title is not None and (datetime.now() - self.__lasttime_change_title).total_seconds() > 1.0:
                     self.__SetTitle('☑'+self.__GetTitle()[1:], footprint=False)
                     self.__lasttime_change_title = None
                 new_text = self.__clipboard_listener.check_text()
                 if new_text is not None:
+                    self.GetTopLevelParent().Raise()
                     self.text_entry.SetValue(new_text)
                     self.Refresh(keyword=new_text)
-        self.Bind(wx.EVT_IDLE, handler=idle_event_listener)
+        # self.Bind(wx.EVT_IDLE, handler=idle_event_listener)
+        def idle_event_backgroundloop():
+            while True:
+                wx.CallAfter(idle_event_listener)
+                time.sleep(0.5)
+        self.idle_event_backgroundthread = threading.Thread(target=idle_event_backgroundloop, daemon=True)
+        self.idle_event_backgroundthread.start()
         self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_NAVIGATING, handler=lambda e: [self.__SetTitle('⏳'+self.__GetTitle()[1:])])
         self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_NAVIGATED, handler=lambda e: [self.__SetTitle('⌛'+self.__GetTitle()[1:])])
         self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_LOADED, handler=lambda e: [self.__SetTitle('✓'+self.__GetTitle()[1:])])
