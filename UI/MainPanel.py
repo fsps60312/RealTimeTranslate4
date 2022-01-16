@@ -81,7 +81,7 @@ class MainPanel(wx.Panel):
                 new_text = self.__clipboard_listener.check_text()
                 if new_text is not None:
                     self.GetTopLevelParent().Raise()
-                    self.text_entry.SetValue(new_text)
+                    self.text_ctrl_keyword.SetValue(new_text)
                     self.Refresh(keyword=new_text)
         # self.Bind(wx.EVT_IDLE, handler=idle_event_listener)
         def idle_event_backgroundloop():
@@ -90,6 +90,7 @@ class MainPanel(wx.Panel):
                 time.sleep(0.5)
         self.idle_event_backgroundthread = threading.Thread(target=idle_event_backgroundloop, daemon=True)
         self.idle_event_backgroundthread.start()
+        self.text_ctrl_keyword.Bind(wx.EVT_TEXT_ENTER, handler=lambda e: self.Refresh(keyword=e.GetString()))
         self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_NAVIGATING, handler=lambda e: [self.__SetTitle('⏳'+self.__GetTitle()[1:])])
         self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_NAVIGATED, handler=lambda e: [self.__SetTitle('⌛'+self.__GetTitle()[1:])])
         self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_LOADED, handler=lambda e: [self.__SetTitle('✓'+self.__GetTitle()[1:])])
@@ -102,18 +103,13 @@ class MainPanel(wx.Panel):
         self.translate_direction_Auto_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=lambda e: self.Refresh(translate_direction=TranslateDirection.Auto))
         self.translate_direction_CE_radiobutton.Bind(wx.EVT_RADIOBUTTON, lambda e: self.Refresh(translate_direction=TranslateDirection.CE))
         self.translate_direction_EC_radiobutton.Bind(wx.EVT_RADIOBUTTON, lambda e: self.Refresh(translate_direction=TranslateDirection.EC))
-        return
-        self.button.Bind(wx.EVT_BUTTON, lambda e: [
-            w:=self.text_entry.GetValue(),
-            self.TopLevelParent.SetTitle(w),
-            self.browser_panel.LoadURL(w)])
     
     def __init_UI(self):
         font = wx.Font(9, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         small_font = wx.Font(7, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
 
         self.control_panel = wx.Panel(self)
-        self.text_entry = wx.TextCtrl(self, size=(0, -1))
+        self.text_ctrl_keyword = wx.TextCtrl(self, size=(0, -1), style=wx.TE_PROCESS_ENTER|wx.TE_MULTILINE|wx.HSCROLL)
         self.translate_provider_panel = wx.Panel(self)
         self.translate_direction_panel = wx.Panel(self)
         self.expand_button = MyButton(self, label='︾Expand', font=font, size=(0, 0))
@@ -143,7 +139,7 @@ class MainPanel(wx.Panel):
         ])
 
         self.control_panel.sizer = MyGridBagSizer(self.control_panel, 1, 8, addmany_list=[
-            (self.text_entry, (0, 0, 1, 4)),
+            (self.text_ctrl_keyword, (0, 0, 1, 4)),
             (self.translate_provider_panel, (0, 4, 1, 2)),
             (self.translate_direction_panel, (0, 6)),
             (self.expand_button, (0, 7))
