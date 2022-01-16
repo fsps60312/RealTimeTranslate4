@@ -6,6 +6,8 @@ class MyBoxSizer(wx.BoxSizer):
         wx.BoxSizer.__init__(self, orient=orient)
         for w, f in addmany_list:
             if isinstance(w, wx.Window):
+                if (s:=w.GetContainingSizer()) is not None:
+                    s.Detach(w)
                 w.Reparent(parent)
         self.AddMany(addmany_list)
         parent.SetSizer(self)

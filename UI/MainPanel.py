@@ -9,6 +9,7 @@ from UI.BrowserPanel import BrowserPanel
 from UI.MyBoxSizer import MyBoxSizer
 from UI.MyGridBagSizer import MyGridBagSizer
 from UI.MyRadioButton import MyRadioButton
+from UI.MyCheckBox import MyCheckBox
 from UI.MyButton import MyButton
 from Utility.ClipboardListener import ClipboardListener
 from Utility.TimeLock import TimeLock
@@ -34,6 +35,7 @@ class MainPanel(wx.Panel):
         self.__clipboard_listener = ClipboardListener()
         self.__settings: MainPanel.Settings = MainPanel.Settings()
         self.__lasttime_change_title: Optional[datetime] = None
+        self.__expanded = False
         self.__init_UI()
         self.__init_events()
     
@@ -56,7 +58,7 @@ class MainPanel(wx.Panel):
     def __GetTitle(self) -> str:
         return self.TopLevelParent.GetTitle()
 
-    def Refresh(self, *, keyword: Optional[str] = None,
+    def Navigate(self, *, keyword: Optional[str] = None,
                          translate_provider: Optional[TranslateProvider] = None,
                          translate_direction: Optional[TranslateDirection] = None):
         if keyword is not None:
@@ -70,6 +72,26 @@ class MainPanel(wx.Panel):
         self.browser_panel.LoadURL(url)
 
     def __init_events(self):
+        self.keyword_textctrl.Bind(wx.EVT_TEXT_ENTER, handler=lambda e: self.Navigate(keyword=e.GetString()))
+        self.expand_button.Bind(wx.EVT_BUTTON, handler=lambda e: self.__set_expanded())
+
+        # translate option events
+        self.google_translate_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=lambda e: self.Navigate(translate_provider=TranslateProvider.GoogleTranslate))
+        self.bing_translate_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=lambda e: self.Navigate(translate_provider=TranslateProvider.BingTranslate))
+        self.yahoo_dictionary_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=lambda e: self.Navigate(translate_provider=TranslateProvider.YahooDictionary))
+        self.translate_direction_Auto_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=lambda e: self.Navigate(translate_direction=TranslateDirection.Auto))
+        self.translate_direction_CE_radiobutton.Bind(wx.EVT_RADIOBUTTON, lambda e: self.Navigate(translate_direction=TranslateDirection.CE))
+        self.translate_direction_EC_radiobutton.Bind(wx.EVT_RADIOBUTTON, lambda e: self.Navigate(translate_direction=TranslateDirection.EC))
+
+        # browser panel events
+        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_NAVIGATING, handler=lambda e: [self.__SetTitle('⏳'+self.__GetTitle()[1:])])
+        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_NAVIGATED, handler=lambda e: [self.__SetTitle('⌛'+self.__GetTitle()[1:])])
+        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_LOADED, handler=lambda e: [self.__SetTitle('✓'+self.__GetTitle()[1:])])
+        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_ERROR, handler=lambda e: [self.__SetTitle('⚠'+self.__GetTitle()[1:])])
+        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_NEWWINDOW, handler=lambda e: [self.__SetTitle('🆕'+self.__GetTitle()[1:])])
+        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_TITLE_CHANGED, handler=lambda e: [self.__SetTitle('✏'+self.__GetTitle()[1:])])
+        
+        # idle loop to monitor clipboard change
         # @add_attrs(timelock=TimeLock(0.5))
         def idle_event_listener():
             # timelock: TimeLock = idle_event_listener.timelock
@@ -81,8 +103,8 @@ class MainPanel(wx.Panel):
                 new_text = self.__clipboard_listener.check_text()
                 if new_text is not None:
                     self.GetTopLevelParent().Raise()
-                    self.text_ctrl_keyword.SetValue(new_text)
-                    self.Refresh(keyword=new_text)
+                    self.keyword_textctrl.SetValue(new_text)
+                    self.Navigate(keyword=new_text)
         # self.Bind(wx.EVT_IDLE, handler=idle_event_listener)
         def idle_event_backgroundloop():
             while True:
@@ -90,29 +112,41 @@ class MainPanel(wx.Panel):
                 time.sleep(0.5)
         self.idle_event_backgroundthread = threading.Thread(target=idle_event_backgroundloop, daemon=True)
         self.idle_event_backgroundthread.start()
-        self.text_ctrl_keyword.Bind(wx.EVT_TEXT_ENTER, handler=lambda e: self.Refresh(keyword=e.GetString()))
-        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_NAVIGATING, handler=lambda e: [self.__SetTitle('⏳'+self.__GetTitle()[1:])])
-        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_NAVIGATED, handler=lambda e: [self.__SetTitle('⌛'+self.__GetTitle()[1:])])
-        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_LOADED, handler=lambda e: [self.__SetTitle('✓'+self.__GetTitle()[1:])])
-        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_ERROR, handler=lambda e: [self.__SetTitle('⚠'+self.__GetTitle()[1:])])
-        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_NEWWINDOW, handler=lambda e: [self.__SetTitle('🆕'+self.__GetTitle()[1:])])
-        self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_TITLE_CHANGED, handler=lambda e: [self.__SetTitle('✏'+self.__GetTitle()[1:])])
-        self.google_translate_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=lambda e: self.Refresh(translate_provider=TranslateProvider.GoogleTranslate))
-        self.bing_translate_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=lambda e: self.Refresh(translate_provider=TranslateProvider.BingTranslate))
-        self.yahoo_dictionary_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=lambda e: self.Refresh(translate_provider=TranslateProvider.YahooDictionary))
-        self.translate_direction_Auto_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=lambda e: self.Refresh(translate_direction=TranslateDirection.Auto))
-        self.translate_direction_CE_radiobutton.Bind(wx.EVT_RADIOBUTTON, lambda e: self.Refresh(translate_direction=TranslateDirection.CE))
-        self.translate_direction_EC_radiobutton.Bind(wx.EVT_RADIOBUTTON, lambda e: self.Refresh(translate_direction=TranslateDirection.EC))
     
+    def __set_expanded(self, expanded: Optional[bool] = None):
+        if expanded is None:
+            expanded = not self.__expanded
+        self.__expanded = expanded
+        if self.__expanded:
+            self.sizer = MyBoxSizer(self, orient=wx.VERTICAL, addmany_list=[
+                (self.control_panel, wx.SizerFlags(0).Expand()),
+                (self.extra_panel, wx.SizerFlags(0).Expand()),
+                (self.browser_panel, wx.SizerFlags(1).Expand())
+            ])
+        else:
+            self.sizer = MyBoxSizer(self, orient=wx.VERTICAL, addmany_list=[
+                (self.control_panel, wx.SizerFlags(0).Expand()),
+                (self.browser_panel, wx.SizerFlags(1).Expand())
+            ])
+        self.Layout()
+
     def __init_UI(self):
         font = wx.Font(9, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         small_font = wx.Font(7, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
 
         self.control_panel = wx.Panel(self)
-        self.text_ctrl_keyword = wx.TextCtrl(self, size=(0, -1), style=wx.TE_PROCESS_ENTER|wx.TE_MULTILINE|wx.HSCROLL)
+        self.keyword_textctrl = wx.TextCtrl(self, size=(0, -1), style=wx.TE_PROCESS_ENTER|wx.TE_MULTILINE|wx.HSCROLL)
         self.translate_provider_panel = wx.Panel(self)
         self.translate_direction_panel = wx.Panel(self)
-        self.expand_button = MyButton(self, label='︾Expand', font=font, size=(0, 0))
+        self.expand_button = MyButton(self, label='︾Expand', font=font, tooltip='expand', size=(0, -1))
+
+        self.extra_panel = wx.Panel(self)
+        self.refresh_button = MyButton(self, label='⟳', font=font, tooltip='⟳ refresh', size=(0, -1))
+        self.go_bwd_button = MyButton(self, label='←', font=font, tooltip='← go backward', size=(0, -1))
+        self.go_fwd_button = MyButton(self, label='→', font=font, tooltip='→ go forward', size=(0, -1))
+        self.url_textctrl = wx.TextCtrl(self, size=(0, -1), style=wx.TE_PROCESS_ENTER|wx.HSCROLL)
+        self.watch_clipboard_checkbox = MyCheckBox(self, label='📋', font=font, tooltip='📋 watch clipboard', size=(0, -1))
+
         self.browser_panel = BrowserPanel(self)
 
         print('wx.DefaultSize:', wx.DefaultSize) # wx.DefaultSize
@@ -139,16 +173,21 @@ class MainPanel(wx.Panel):
         ])
 
         self.control_panel.sizer = MyGridBagSizer(self.control_panel, 1, 8, addmany_list=[
-            (self.text_ctrl_keyword, (0, 0, 1, 4)),
+            (self.keyword_textctrl, (0, 0, 1, 4)),
             (self.translate_provider_panel, (0, 4, 1, 2)),
             (self.translate_direction_panel, (0, 6)),
             (self.expand_button, (0, 7))
         ])
         
-        self.sizer = MyBoxSizer(self, orient=wx.VERTICAL, addmany_list=[
-            (self.control_panel, wx.SizerFlags(0).Expand()),
-            (self.browser_panel, wx.SizerFlags(1).Expand())
+        self.extra_panel.sizer = MyGridBagSizer(self.extra_panel, 1, 8, addmany_list=[
+            (self.refresh_button, (0, 0)),
+            (self.go_bwd_button, (0, 1)),
+            (self.go_fwd_button, (0, 2)),
+            (self.url_textctrl, (0, 3, 1, 4)),
+            (self.watch_clipboard_checkbox, (0, 7))
         ])
 
         self.google_translate_radiobutton.SetValue(True)
         self.translate_direction_Auto_radiobutton.SetValue(True)
+
+        self.__set_expanded(False)
