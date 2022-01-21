@@ -1,6 +1,5 @@
 from cgitb import handler
-from typing import Callable, List, Optional, Annotated, get_type_hints
-get_type_hints(str, include_extras=True)
+from typing import Callable, List, Optional
 import typing
 import wx
 import wx.html2
