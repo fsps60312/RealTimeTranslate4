@@ -1,3 +1,8 @@
+# The complete install commands (for now)
+    # enter venv first (python3.8 or higher)
+    sudo apt install libgtk-3-dev libwebkit2gtk-4.0-dev gstreamer1.0-plugins-bad
+    pip install -r requirements.txt
+
 # To install wxpython
 ## need gtk+-3.0 to build wheels for wxpython on Ubuntu
 
