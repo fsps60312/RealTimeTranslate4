@@ -25,6 +25,22 @@ class TranslateProvider(enum.Enum):
     YahooDictionary = enum.auto()
 
 class MainPanel(wx.Panel):
+    
+    def __SetTitle(self, title: str, footprint: bool = True):
+        self.TopLevelParent.SetTitle(title)
+        if footprint:
+            self.__lasttime_change_title = datetime.now()
+    
+    def __GetTitle(self) -> str:
+        return self.TopLevelParent.GetTitle()
+    
+    def __Raise(self):
+        f: wx.Frame = self.GetTopLevelParent()
+        if not f.HasFlag(wx.STAY_ON_TOP):
+            f.ToggleWindowStyle(wx.STAY_ON_TOP)
+        f.Raise()
+        if f.HasFlag(wx.STAY_ON_TOP):
+            f.ToggleWindowStyle(wx.STAY_ON_TOP)
 
     class Settings:
         translate_direction = TranslateDirection.Auto
@@ -45,7 +61,7 @@ class MainPanel(wx.Panel):
             def idle_event_listener():
                 try:
                     pathlib.Path(Utility.SingleInstanceChecker.touchname).unlink(missing_ok=False)
-                    self.GetTopLevelParent().Raise()
+                    self.__Raise() # touchfile exists. This means there are other invocations found me existing, and need me to raise up instead.
                 except FileNotFoundError:
                     pass
                 if self.__lasttime_change_title is not None and (datetime.now() - self.__lasttime_change_title).total_seconds() > 1.0:
@@ -55,7 +71,7 @@ class MainPanel(wx.Panel):
                 if new_text is not None:
                     self.__SetTitle('📋' + new_text, footprint=False)
                     if self.keyword_textcheckbox.checkbox.IsChecked():
-                        self.GetTopLevelParent().Raise()
+                        self.__Raise()
                         self.keyword_textcheckbox.textctrl.ChangeValue(new_text) # SetValue send EVT_TEXT event, while ChangeValue not
                         self.Navigate(keyword=new_text)
             def idle_event_backgroundloop():
@@ -227,15 +243,6 @@ class MainPanel(wx.Panel):
             self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_NEWWINDOW, handler=handler_gen('🆕', goto_URL=True))
             self.browser_panel.webview.Bind(wx.html2.EVT_WEBVIEW_TITLE_CHANGED, handler=handler_gen('✏'))
         __init_events_from_webview(self)
-    
-    def __SetTitle(self, title: str, footprint: bool = True):
-        self.TopLevelParent.SetTitle(title)
-        if footprint:
-            self.__lasttime_change_title = datetime.now()
-    
-    def __GetTitle(self) -> str:
-        return self.TopLevelParent.GetTitle()
-
     
     @staticmethod
     def GetUrl(settings: Settings) -> str:

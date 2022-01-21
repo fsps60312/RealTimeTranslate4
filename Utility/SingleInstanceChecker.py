@@ -18,7 +18,7 @@ def OtherProcessExists() -> bool:
             print('other pid:', pid, ', exists:', exists)
             return exists
         if other_exists():
-            pathlib.Path(touchname).touch()
+            pathlib.Path(touchname).touch() # notify other window to raise by touching touchfile
             return True
         f.seek(0)
         f.truncate()
