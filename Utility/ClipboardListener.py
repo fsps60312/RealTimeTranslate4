@@ -19,6 +19,9 @@ class ClipboardListener:
                     return text
         finally:
             clipboard.Close()
+    @property
+    def CachedText(self):
+        return self.__cached_text
 
 
 
