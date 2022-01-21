@@ -1,0 +1,2 @@
+psutil==5.9.0
+wxPython==4.1.1
