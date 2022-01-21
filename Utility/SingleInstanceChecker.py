@@ -11,7 +11,7 @@ def OtherProcessExists() -> bool:
         f.seek(0)
         c = f.read()
         def other_exists():
-            if len(c) != 2:
+            if len(c) != 8:
                 return False
             pid = int.from_bytes(c, 'big', signed=True)
             exists = psutil.pid_exists(pid)
@@ -22,6 +22,6 @@ def OtherProcessExists() -> bool:
             return True
         f.seek(0)
         f.truncate()
-        f.write(os.getpid().to_bytes(2, 'big', signed=True))
+        f.write(os.getpid().to_bytes(8, 'big', signed=True))
         print('I\'m the only one!')
         return False
