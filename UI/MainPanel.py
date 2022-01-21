@@ -1,6 +1,5 @@
 from cgitb import handler
-from typing import Callable, List, Optional, Annotated, get_type_hints
-get_type_hints(str, include_extras=True)
+from typing import Callable, List, Optional
 import typing
 import wx
 import wx.html2
@@ -72,7 +71,7 @@ class MainPanel(wx.Panel):
         self.control_panel = wx.Panel(self)
         self.keyword_textcheckbox = MyTextCheckBox(self,
             MyTextCtrl(self, font=font, tooltip='keyword', hint='keyword', size=(0, -1), style=wx.TE_PROCESS_ENTER|wx.TE_MULTILINE), # |wx.HSCROLL
-            MyCheckBox(self, font=font, tooltip='=📋 don\'t sync with clipboard', label='=📋', size=(-1, -1)),
+            MyCheckBox(self, font=font, tooltip='=📋 sync with clipboard', label='=📋', size=(-1, -1)),
             (wx.SizerFlags(1).Expand(), wx.SizerFlags(0).Expand()))
         self.keyword_textcheckbox.checkbox.SetValue(True)
         self.translate_provider_panel = wx.Panel(self)

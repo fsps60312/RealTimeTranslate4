@@ -1,4 +1,4 @@
-from typing import Annotated, Tuple, Union
+from typing import Tuple, Union
 from datetime import datetime
 import wx
 
