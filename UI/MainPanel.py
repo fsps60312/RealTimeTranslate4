@@ -1,11 +1,10 @@
-from cgitb import handler
 from typing import Callable, List, Optional
-import typing
 import wx
 import wx.html2
 import enum
 import time
 import threading
+import pathlib
 from datetime import datetime
 from UI.BrowserPanel import BrowserPanel
 from UI.MyBoxSizer import MyBoxSizer
@@ -16,11 +15,9 @@ from UI.MyTextCtrl import MyTextCtrl
 from UI.MyButton import MyButton
 from UI.MyTextCheckBox import MyTextCheckBox
 from Utility.ClipboardListener import ClipboardListener
-from Utility.TimeLock import TimeLock
 from Utility.TranslateDirection import TranslateDirection
-from Utility.strlib import is_chinese
 from Utility.Translator import GoogleTranslate, BingTranslate, YahooDictionary
-from Decorators.add_attrs import add_attrs
+import Utility.SingleInstanceChecker
 
 class TranslateProvider(enum.Enum):
     GoogleTranslate = enum.auto()
@@ -46,6 +43,11 @@ class MainPanel(wx.Panel):
         def __start_backgroundloop(self: MainPanel):
             # idle loop to monitor clipboard change
             def idle_event_listener():
+                try:
+                    pathlib.Path(Utility.SingleInstanceChecker.touchname).unlink(missing_ok=False)
+                    self.GetTopLevelParent().Raise()
+                except FileNotFoundError:
+                    pass
                 if self.__lasttime_change_title is not None and (datetime.now() - self.__lasttime_change_title).total_seconds() > 1.0:
                     self.__SetTitle('☑' + self.__settings.keyword, footprint=False)
                     self.__lasttime_change_title = None
