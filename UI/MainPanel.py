@@ -36,6 +36,7 @@ class MainPanel(wx.Panel):
     
     def __Raise(self):
         f: wx.Frame = self.GetTopLevelParent()
+        f.Iconize(iconize=False)
         if not f.HasFlag(wx.STAY_ON_TOP):
             f.ToggleWindowStyle(wx.STAY_ON_TOP)
         f.Raise()
