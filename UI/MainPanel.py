@@ -119,11 +119,11 @@ class MainPanel(wx.Panel):
         # self.button = wx.Button(self, label='I\'m button')
 
         def __init_UI_layout(self: MainPanel):
-            self.translate_provider_panel.sizer = MyGridBagSizer(self.translate_provider_panel, 1, 4, addmany_list=[
-                (self.google_translate_radiobutton, (0, 0)),
-                (self.bing_translate_radiobutton, (0, 1)),
-                (self.yahoo_dictionary_radiobutton, (0, 2)),
-                (self.wikitionary_radiobutton, (0, 3))
+            self.translate_provider_panel.sizer = MyGridBagSizer(self.translate_provider_panel, 1, 9, addmany_list=[
+                (self.google_translate_radiobutton, (0, 0, 1, 2)),
+                (self.bing_translate_radiobutton, (0, 2, 1, 2)),
+                (self.yahoo_dictionary_radiobutton, (0, 4, 1, 2)),
+                (self.wikitionary_radiobutton, (0, 6, 1, 3))
             ])
 
             self.translate_direction_panel.sizer = MyGridBagSizer(self.translate_direction_panel, 2, 2, addmany_list=[
@@ -132,11 +132,11 @@ class MainPanel(wx.Panel):
                 (self.translate_direction_Auto_radiobutton, (1, 0, 1, 2))
             ])
 
-            self.control_panel.sizer = MyGridBagSizer(self.control_panel, 1, 8, addmany_list=[
-                (self.keyword_textcheckbox, (0, 0, 1, 4)),
-                (self.translate_provider_panel, (0, 4, 1, 2)),
-                (self.translate_direction_panel, (0, 6)),
-                (self.expand_button, (0, 7))
+            self.control_panel.sizer = MyGridBagSizer(self.control_panel, 1, 16, addmany_list=[
+                (self.keyword_textcheckbox, (0, 0, 1, 8)),
+                (self.translate_provider_panel, (0, 8, 1, 5)),
+                (self.translate_direction_panel, (0, 13, 1, 2)),
+                (self.expand_button, (0, 15))
             ])
             
             self.extra_panel.sizer = MyGridBagSizer(self.extra_panel, 1, 12, addmany_list=[
