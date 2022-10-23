@@ -16,13 +16,14 @@ from UI.MyButton import MyButton
 from UI.MyTextCheckBox import MyTextCheckBox
 from Utility.ClipboardListener import ClipboardListener
 from Utility.TranslateDirection import TranslateDirection
-from Utility.Translator import GoogleTranslate, BingTranslate, YahooDictionary
+from Utility.Translator import GoogleTranslate, BingTranslate, YahooDictionary, Wikitionary
 import Utility.SingleInstanceChecker
 
 class TranslateProvider(enum.Enum):
     GoogleTranslate = enum.auto()
     BingTranslate = enum.auto()
     YahooDictionary = enum.auto()
+    Wikitionary = enum.auto()
 
 class MainPanel(wx.Panel):
     
@@ -109,6 +110,7 @@ class MainPanel(wx.Panel):
         self.google_translate_radiobutton = MyRadioButton(self, font=font, tooltip='Google Translate', label='Google', size=(0, -1), style=wx.RB_GROUP)
         self.bing_translate_radiobutton = MyRadioButton(self, font=font, tooltip='Bing Translate', label='Bing', size=(0, -1))
         self.yahoo_dictionary_radiobutton = MyRadioButton(self, font=font, tooltip='Yahoo Dictionary', label='Yahoo', size=(0, -1))
+        self.wikitionary_radiobutton = MyRadioButton(self, font=font, tooltip='Wiktionary', label='Wiktionary', size=(0, -1))
 
         self.translate_direction_CE_radiobutton = MyRadioButton(self, font=small_font, tooltip='CE (Chinese to English)', label='CE', size=(0, 0), style=wx.RB_GROUP)
         self.translate_direction_EC_radiobutton = MyRadioButton(self, font=small_font, tooltip='EC (English to Chinese)', label='EC', size=(0, 0))
@@ -117,10 +119,11 @@ class MainPanel(wx.Panel):
         # self.button = wx.Button(self, label='I\'m button')
 
         def __init_UI_layout(self: MainPanel):
-            self.translate_provider_panel.sizer = MyGridBagSizer(self.translate_provider_panel, 1, 3, addmany_list=[
+            self.translate_provider_panel.sizer = MyGridBagSizer(self.translate_provider_panel, 1, 4, addmany_list=[
                 (self.google_translate_radiobutton, (0, 0)),
                 (self.bing_translate_radiobutton, (0, 1)),
-                (self.yahoo_dictionary_radiobutton, (0, 2))
+                (self.yahoo_dictionary_radiobutton, (0, 2)),
+                (self.wikitionary_radiobutton, (0, 3))
             ])
 
             self.translate_direction_panel.sizer = MyGridBagSizer(self.translate_direction_panel, 2, 2, addmany_list=[
@@ -211,6 +214,7 @@ class MainPanel(wx.Panel):
             self.google_translate_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda: self.Navigate(translate_provider=TranslateProvider.GoogleTranslate)))
             self.bing_translate_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda: self.Navigate(translate_provider=TranslateProvider.BingTranslate)))
             self.yahoo_dictionary_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda: self.Navigate(translate_provider=TranslateProvider.YahooDictionary)))
+            self.wikitionary_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda: self.Navigate(translate_provider=TranslateProvider.Wikitionary)))
             self.translate_direction_Auto_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda: self.Navigate(translate_direction=TranslateDirection.Auto)))
             self.translate_direction_CE_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler_gen(lambda: self.Navigate(translate_direction=TranslateDirection.CE)))
             self.translate_direction_EC_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler_gen(lambda: self.Navigate(translate_direction=TranslateDirection.EC)))
@@ -253,6 +257,8 @@ class MainPanel(wx.Panel):
             return BingTranslate.Translate(settings.keyword, settings.translate_direction)
         elif settings.translate_provider == TranslateProvider.YahooDictionary:
             return YahooDictionary.Translate(settings.keyword, settings.translate_direction)
+        elif settings.translate_provider == TranslateProvider.Wikitionary:
+            return Wikitionary.Translate(settings.keyword, settings.translate_direction)
         else:
             raise NotImplementedError(settings.translate_provider)
 

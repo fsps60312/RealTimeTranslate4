@@ -49,3 +49,11 @@ class YahooDictionary(Translator):
     @classmethod
     def _TranslateEC(cls, keyword: str) -> str:
         return 'https://tw.dictionary.search.yahoo.com/search?p=' + urlquote(keyword)
+
+class Wikitionary(Translator):
+    @classmethod
+    def _TranslateCE(cls, keyword: str) -> str:
+        return 'https://en.wiktionary.org/wiki/' + urlquote(keyword)
+    @classmethod
+    def _TranslateEC(cls, keyword: str) -> str:
+        return 'https://zh.wiktionary.org/wiki/' + urlquote(keyword)
