@@ -16,12 +16,11 @@ from UI.MyButton import MyButton
 from UI.MyTextCheckBox import MyTextCheckBox
 from Utility.ClipboardListener import ClipboardListener
 from Utility.TranslateDirection import TranslateDirection
-from Utility.Translator import Abbreviation, GoogleTranslate, BingTranslate, YahooDictionary, Wikitionary
+from Utility.Translator import Abbreviation, GoogleTranslate, YahooDictionary, Wikitionary
 import Utility.SingleInstanceChecker
 
 class TranslateProvider(enum.Enum):
     GoogleTranslate = enum.auto()
-    BingTranslate = enum.auto()
     YahooDictionary = enum.auto()
     Wikitionary = enum.auto()
     Abbreviation = enum.auto()
@@ -109,7 +108,6 @@ class MainPanel(wx.Panel):
 
         print('wx.DefaultSize:', wx.DefaultSize) # wx.DefaultSize
         self.google_translate_radiobutton = MyRadioButton(self, font=font, tooltip='Google Translate', label='Google', size=(0, -1), style=wx.RB_GROUP)
-        self.bing_translate_radiobutton = MyRadioButton(self, font=font, tooltip='Bing Translate', label='Bing', size=(0, -1))
         self.yahoo_dictionary_radiobutton = MyRadioButton(self, font=font, tooltip='Yahoo Dictionary', label='Yahoo', size=(0, -1))
         self.wikitionary_radiobutton = MyRadioButton(self, font=font, tooltip='Wiktionary', label='Wiktionary', size=(0, -1))
         self.abbreviation_radiobutton = MyRadioButton(self, font=font, tooltip='www.abbreviation.com', label='Abbreviation', size=(0, -1))
@@ -123,7 +121,6 @@ class MainPanel(wx.Panel):
         def __init_UI_layout(self: MainPanel):
             self.translate_provider_panel.sizer = MyGridBagSizer(self.translate_provider_panel, 1, 10, addmany_list=[
                 (self.google_translate_radiobutton, (0, 0, 1, 2)),
-                # (self.bing_translate_radiobutton, (0, 2, 1, 2)),
                 (self.yahoo_dictionary_radiobutton, (0, 2, 1, 2)),
                 (self.wikitionary_radiobutton, (0, 4, 1, 3)),
                 (self.abbreviation_radiobutton, (0, 7, 1, 3))
@@ -215,7 +212,6 @@ class MainPanel(wx.Panel):
                     nav()
                 return handler
             self.google_translate_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda: self.Navigate(translate_provider=TranslateProvider.GoogleTranslate)))
-            self.bing_translate_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda: self.Navigate(translate_provider=TranslateProvider.BingTranslate)))
             self.yahoo_dictionary_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda: self.Navigate(translate_provider=TranslateProvider.YahooDictionary)))
             self.wikitionary_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda: self.Navigate(translate_provider=TranslateProvider.Wikitionary)))
             self.abbreviation_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda: self.Navigate(translate_provider=TranslateProvider.Abbreviation)))
@@ -257,8 +253,6 @@ class MainPanel(wx.Panel):
     def GetUrl(settings: Settings) -> str:
         if settings.translate_provider == TranslateProvider.GoogleTranslate:
             return GoogleTranslate.Translate(settings.keyword, settings.translate_direction)
-        elif settings.translate_provider == TranslateProvider.BingTranslate:
-            return BingTranslate.Translate(settings.keyword, settings.translate_direction)
         elif settings.translate_provider == TranslateProvider.YahooDictionary:
             return YahooDictionary.Translate(settings.keyword, settings.translate_direction)
         elif settings.translate_provider == TranslateProvider.Wikitionary:

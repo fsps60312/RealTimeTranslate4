@@ -34,14 +34,6 @@ class GoogleTranslate(Translator):
     def _TranslateEC(cls, keyword: str) -> str:
         return 'https://translate.google.com.tw/#view=home&op=translate&sl=auto&tl=zh-TW&text=' + urlquote(keyword)
 
-class BingTranslate(Translator):
-    @classmethod
-    def _TranslateCE(cls, keyword: str) -> str:
-        return 'https://www.bing.com/Translator?to=en&from=zh-CHT&text=' + urlquote(keyword)
-    @classmethod
-    def _TranslateEC(cls, keyword: str) -> str:
-        return 'https://www.bing.com/Translator?from=en&to=zh-CHT&text=' + urlquote(keyword)
-
 class YahooDictionary(Translator):
     @classmethod
     def _TranslateCE(cls, keyword: str) -> str:
