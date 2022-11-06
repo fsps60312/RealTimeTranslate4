@@ -57,3 +57,11 @@ class Wikitionary(Translator):
     @classmethod
     def _TranslateEC(cls, keyword: str) -> str:
         return 'https://zh.wiktionary.org/wiki/' + urlquote(keyword)
+
+class Abbreviation(Translator):
+    @classmethod
+    def _TranslateCE(cls, keyword: str) -> str:
+        return 'https://www.abbreviations.com/' + urlquote(keyword)
+    @classmethod
+    def _TranslateEC(cls, keyword: str) -> str:
+        return 'https://www.abbreviations.com/' + urlquote(keyword)
