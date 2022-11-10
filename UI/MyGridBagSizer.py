@@ -4,6 +4,8 @@ import wx
 class MyGridBagSizer(wx.GridBagSizer):
     def __init__(self, parent: wx.Window, n_rows: int, n_cols: int, *args, addmany_list: List[Tuple[Union[wx.Window, Tuple[int, int]], Union[Tuple[int, int], Tuple[int, int, int, int]]]], **kwargs):
         wx.GridBagSizer.__init__(self, *args, **kwargs)
+        for c in parent.GetChildren():
+            c.Destroy()
         for w, f in addmany_list:
             if isinstance(w, wx.Window):
                 w.Reparent(parent)

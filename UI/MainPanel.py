@@ -1,7 +1,6 @@
 from typing import Callable, List, Optional
 import wx
 import wx.html2
-import enum
 import time
 import threading
 import pathlib
@@ -15,15 +14,8 @@ from UI.MyTextCtrl import MyTextCtrl
 from UI.MyButton import MyButton
 from UI.MyTextCheckBox import MyTextCheckBox
 from Utility.ClipboardListener import ClipboardListener
-from Utility.TranslateDirection import TranslateDirection
-from Utility.Translator import Abbreviation, GoogleTranslate, YahooDictionary, Wikitionary
+from Utility.Translator import Abbreviation, GoogleTranslate, Translator, YahooDictionary, Wikitionary
 import Utility.SingleInstanceChecker
-
-class TranslateProvider(enum.Enum):
-    GoogleTranslate = enum.auto()
-    YahooDictionary = enum.auto()
-    Wikitionary = enum.auto()
-    Abbreviation = enum.auto()
 
 class MainPanel(wx.Panel):
     
@@ -45,9 +37,9 @@ class MainPanel(wx.Panel):
             f.ToggleWindowStyle(wx.STAY_ON_TOP)
 
     class Settings:
-        translate_direction = TranslateDirection.Auto
-        translate_provider = TranslateProvider.GoogleTranslate
-        keyword: str = ''
+        last_selected_translate_direction: str = ""
+        translator: Translator = GoogleTranslate
+        keyword: str = ""
         
     def __init__(self, *args, **kwargs):
         wx.Panel.__init__(self, *args, **kwargs)
@@ -86,7 +78,6 @@ class MainPanel(wx.Panel):
 
     def __init_UI(self):
         font = wx.Font(9, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
-        small_font = wx.Font(7, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
 
         self.control_panel = wx.Panel(self)
         self.keyword_textcheckbox = MyTextCheckBox(self,
@@ -112,11 +103,7 @@ class MainPanel(wx.Panel):
         self.wikitionary_radiobutton = MyRadioButton(self, font=font, tooltip='Wiktionary', label='Wiktionary', size=(0, -1))
         self.abbreviation_radiobutton = MyRadioButton(self, font=font, tooltip='www.abbreviation.com', label='Abbreviation', size=(0, -1))
 
-        self.translate_direction_CE_radiobutton = MyRadioButton(self, font=small_font, tooltip='CE (Chinese to English)', label='CE', size=(0, 0), style=wx.RB_GROUP)
-        self.translate_direction_EC_radiobutton = MyRadioButton(self, font=small_font, tooltip='EC (English to Chinese)', label='EC', size=(0, 0))
-        self.translate_direction_Auto_radiobutton = MyRadioButton(self, font=small_font, tooltip='CE if there are any Chinese characters: [\\u4e00-\\u9fff]\nEC otherwise', label='Auto', size=(0, 0))
-
-        # self.button = wx.Button(self, label='I\'m button')
+        self.translate_direction_radiobuttons: List[MyRadioButton] = []
 
         def __init_UI_layout(self: MainPanel):
             self.translate_provider_panel.sizer = MyGridBagSizer(self.translate_provider_panel, 1, 10, addmany_list=[
@@ -124,12 +111,6 @@ class MainPanel(wx.Panel):
                 (self.yahoo_dictionary_radiobutton, (0, 2, 1, 2)),
                 (self.wikitionary_radiobutton, (0, 4, 1, 3)),
                 (self.abbreviation_radiobutton, (0, 7, 1, 3))
-            ])
-
-            self.translate_direction_panel.sizer = MyGridBagSizer(self.translate_direction_panel, 2, 2, addmany_list=[
-                (self.translate_direction_CE_radiobutton, (0, 0)),
-                (self.translate_direction_EC_radiobutton, (0, 1)),
-                (self.translate_direction_Auto_radiobutton, (1, 0, 1, 2))
             ])
 
             self.control_panel.sizer = MyGridBagSizer(self.control_panel, 1, 16, addmany_list=[
@@ -147,10 +128,42 @@ class MainPanel(wx.Panel):
             ])
 
             self.google_translate_radiobutton.SetValue(True)
-            self.translate_direction_Auto_radiobutton.SetValue(True)
+            self.__refresh_translate_direction_panel(reset_last_selected_translate_direction_to_default=True)
 
             self.__set_expanded(False)
         __init_UI_layout(self)
+    
+    def __refresh_translate_direction_panel(self, *, reset_last_selected_translate_direction_to_default: bool = False):
+        translator: Translator = self.__settings.translator
+        if reset_last_selected_translate_direction_to_default:
+            self.__settings.last_selected_translate_direction = translator.default_translate_direction
+        translate_direction: str = self.__settings.last_selected_translate_direction
+
+        small_font = wx.Font(7, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        for rb in self.translate_direction_radiobuttons:
+            rb.Destroy()
+        self.translate_direction_radiobuttons.clear()
+        addmany_list = []
+        default_rb: Optional[MyRadioButton] = None
+        # translate option events
+        def handler_gen(nav):
+            def handler(e: wx.CommandEvent):
+                b: MyRadioButton = e.GetEventObject()
+                # b.Flash(1.0, (0, 0, 255))
+                nav()
+            return handler
+
+        for i, c in enumerate(translator.ctrls):
+            rb = MyRadioButton(self, font=small_font, tooltip=c.tooltip, label=c.text, size=(0, 0), **({"style": wx.RB_GROUP} if i == 0 else {}))
+            rb.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda td=c.text: self.Navigate(selected_translate_direction=td)))
+            if c.text == translate_direction or (default_rb is None and c.text == translator.default_translate_direction):
+                default_rb = rb
+            self.translate_direction_radiobuttons.append(rb)
+            addmany_list.append((rb, c.rect))
+        assert(default_rb is not None)
+        self.translate_direction_panel.sizer = MyGridBagSizer(self.translate_direction_panel, translator.n_rows, translator.n_cols, addmany_list=addmany_list)
+        default_rb.SetValue(True)
+        self.Layout()
     
     def __set_expanded(self, expanded: Optional[bool] = None):
         if expanded is None:
@@ -211,13 +224,13 @@ class MainPanel(wx.Panel):
                     # b.Flash(1.0, (0, 0, 255))
                     nav()
                 return handler
-            self.google_translate_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda: self.Navigate(translate_provider=TranslateProvider.GoogleTranslate)))
-            self.yahoo_dictionary_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda: self.Navigate(translate_provider=TranslateProvider.YahooDictionary)))
-            self.wikitionary_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda: self.Navigate(translate_provider=TranslateProvider.Wikitionary)))
-            self.abbreviation_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda: self.Navigate(translate_provider=TranslateProvider.Abbreviation)))
-            self.translate_direction_Auto_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda: self.Navigate(translate_direction=TranslateDirection.Auto)))
-            self.translate_direction_CE_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler_gen(lambda: self.Navigate(translate_direction=TranslateDirection.CE)))
-            self.translate_direction_EC_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler_gen(lambda: self.Navigate(translate_direction=TranslateDirection.EC)))
+            self.google_translate_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda: self.Navigate(translator=GoogleTranslate)))
+            self.yahoo_dictionary_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda: self.Navigate(translator=YahooDictionary)))
+            self.wikitionary_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda: self.Navigate(translator=Wikitionary)))
+            self.abbreviation_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda: self.Navigate(translator=Abbreviation)))
+            # self.translate_direction_Auto_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler=handler_gen(lambda: self.Navigate(translate_direction=TranslateDirection.Auto)))
+            # self.translate_direction_CE_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler_gen(lambda: self.Navigate(translate_direction=TranslateDirection.CE)))
+            # self.translate_direction_EC_radiobutton.Bind(wx.EVT_RADIOBUTTON, handler_gen(lambda: self.Navigate(translate_direction=TranslateDirection.EC)))
         __init_events_from_translate_radiobuttons(self)
 
         def __init_events_from_webview(self: MainPanel):
@@ -251,26 +264,21 @@ class MainPanel(wx.Panel):
     
     @staticmethod
     def GetUrl(settings: Settings) -> str:
-        if settings.translate_provider == TranslateProvider.GoogleTranslate:
-            return GoogleTranslate.Translate(settings.keyword, settings.translate_direction)
-        elif settings.translate_provider == TranslateProvider.YahooDictionary:
-            return YahooDictionary.Translate(settings.keyword, settings.translate_direction)
-        elif settings.translate_provider == TranslateProvider.Wikitionary:
-            return Wikitionary.Translate(settings.keyword, settings.translate_direction)
-        elif settings.translate_provider == TranslateProvider.Abbreviation:
-            return Abbreviation.Translate(settings.keyword, settings.translate_direction)
-        else:
-            raise NotImplementedError(settings.translate_provider)
+        translator: Translator = settings.translator
+        translate_direction: str = next((c.text for c in translator.ctrls if c.text == settings.last_selected_translate_direction), translator.default_translate_direction)
+        callback: Callable[[str], str] = next(c.keywork_url_callback for c in translator.ctrls if c.text == translate_direction)
+        return callback(settings.keyword)
 
     def Navigate(self, *, keyword: Optional[str] = None,
-                         translate_provider: Optional[TranslateProvider] = None,
-                         translate_direction: Optional[TranslateDirection] = None):
+                         translator: Optional[Translator] = None,
+                         selected_translate_direction: Optional[str] = None):
         if keyword is not None:
             self.__settings.keyword = keyword
-        if translate_provider is not None:
-            self.__settings.translate_provider = translate_provider
-        if translate_direction is not None:
-            self.__settings.translate_direction = translate_direction
+        if translator is not None and translator != self.__settings.translator:
+            self.__settings.translator = translator
+            self.__refresh_translate_direction_panel()
+        if selected_translate_direction is not None:
+            self.__settings.last_selected_translate_direction = selected_translate_direction
         self.TopLevelParent.SetTitle('⟳' + (s[:50] + '...' if len(s:=repr(self.__settings.keyword)[1:-1]) > 50 else s))
         url = self.GetUrl(self.__settings)
         self.url_textctrl.ChangeValue(url)
