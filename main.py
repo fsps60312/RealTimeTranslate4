@@ -3,6 +3,11 @@ if Utility.SingleInstanceChecker.OtherProcessExists():
     print('exit because other instance running.')
     exit()
 
+import sys
+import os
+if sys.platform.startsWith('linux'):
+    os.environ['GDK_BACKEND'] = 'x11'
+
 import wx
 import pathlib
 from UI.MainPanel import MainPanel
