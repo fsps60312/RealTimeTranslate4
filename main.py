@@ -5,7 +5,7 @@ if Utility.SingleInstanceChecker.OtherProcessExists():
 
 import sys
 import os
-if sys.platform.startsWith('linux'):
+if sys.platform.startswith('linux'):
     os.environ['GDK_BACKEND'] = 'x11'
 
 import wx
